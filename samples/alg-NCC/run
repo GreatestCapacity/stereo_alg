@@ -1,0 +1,42 @@
+#!/bin/csh -f
+
+# runs ELAS 
+
+# example of a "run" script expected for each stereo algorithm in alg-XXX directory
+
+if ($#argv != 4) then
+  echo "usage: run <im0.png> <im1.png> <ndisp> <outdir>"
+  exit 1
+endif
+
+# runs algorithm on image pair <im0.png>, <im1.png>, using <ndisp> disparity levels
+
+# creates output in directory <outdir>:
+# disparity maps disp0.pfm (dense), and optionally disp0_s.pfm (sparse - no interpolation of "holes")
+# as well as time.txt (runtime of dense version in seconds)
+
+set im0 = $1
+set im1 = $2
+set ndisp = $3
+set outdir = $4
+
+set tmplog = tmp-log.txt
+
+# get relative path to ncc executable
+set p = $0:h
+if ($p == $0) set p = .
+set p = $p/build
+
+@ maxdisp = $ndisp - 1
+
+# run again with interpolation, save output to log file
+(set echo; $p/ncc $im0 $im1 $outdir/disp0.pfm $maxdisp > $tmplog)
+cat $tmplog
+
+# create timing information based on second run
+# extract seconds from output like "runtime: 0.96s  (0.68s/MP)"
+awk -F'[ s]' '{print $2}' $tmplog > $outdir/time.txt
+
+# remove temporary files
+rm -f $tmplog
+
