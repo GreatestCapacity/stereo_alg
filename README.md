@@ -3,7 +3,7 @@
 
 This is a library for stereo vision with easy implementations of some stereo algorithms I encountered with. I write this project for my bachelor's thesis and aim to keep doing research in this field.
 
-So far, there is just a Python library. Next step, except for adding new algorithms to the python library, I am going to implement these algorithms on CUDA. I have to confess that Python runs more slowly than many other languages, but this library uses Numpy as far as possible and apply Numba JIT to loops so that it is also pretty fast.
+So far, there is just a Python library. Next step, except for adding new algorithms to the Python library, I am going to implement these algorithms on CUDA. I have to confess that Python runs more slowly than many other languages, but this library uses Numpy as far as possible and apply Numba JIT to loops so that it is also pretty fast.
 
 ## Requirements
 
@@ -55,6 +55,43 @@ There are many samples in samples directory.
 - ZSAD, Zero-mean Sum of Absolute Differences
 - SSD, Sum of Squared Diferences
 - NCC, Normalized Cross Correlation
+
+## CostMaps Data Structure
+
+```
+im0 based cost_maps      im1 based cost_maps
++++++++++                    +++++++++++++
+++++++++++                  ++++++++++++++
++++++++++++                +++++++++++++++   height: maxdisp
+++++++++++++              ++++++++++++++++
++++++++++++++            +++++++++++++++++
+   columns                    columns
+
+CostMaps is a numpy.ndarray that contains matching cost maps and
+it's shape is (maxdisp, rows, cols). Every element is a cost map
+and each cost map has the same disparity value. The empty element
+of CostMaps will be replaced with numpy.inf.
+
+disparity 0:
++++++++++++++ im0
++++++++++++++ im1
++++++++++++++ cost_map
+
+disparity 1:
+ +++++++++++++ im0
++++++++++++++  im1
+ ++++++++++++  cost_map
+
+disparity 2:
+  +++++++++++++ im0
++++++++++++++   im1
+  +++++++++++   cost_map
+
+cost_maps:
++++++++++++    disparity: 2
+++++++++++++   disparity: 1
++++++++++++++  disparity: 0
+```
 
 ## References
 
