@@ -1,4 +1,4 @@
-Put this directory under MiddEval3/
+Put these directory under MiddEval3/
 
 ./runalg Q Motorcycle SAD
 
