@@ -59,5 +59,6 @@ There are many samples in samples directory.
 ## References
 
 [^1]:R. Zabih and J. Woodfill, “Non-parametric Local Transforms for Computing Visual Correspondence,” in *Proceedings of the Third European Conference on Computer Vision*, Berlin, Heidelberg, 1994, pp. 151–158.
+
 [^2]:R. K. Gupta and S.-Y. Cho, “Window-based approach for fast stereo correspondence,” *IET Computer Vision*, vol. 7, no. 2, pp. 123–134, Apr. 2013.
 
