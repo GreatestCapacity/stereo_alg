@@ -29,10 +29,13 @@ import cv2 as cv
 import numpy as np
 import stereo_alg as sa
 
+patch_size = 9
+maxdisp = 69
+
 im0 = cv.imread('im0.png', cv.IMREAD_GRAYSCALE)
 im1 = cv.imread('im1.png', cv.IMREAD_GRAYSCALE)
 
-cost_maps = sa.sad(mat1, mat2, patch_size, maxdisp)
+cost_maps = sa.sad(im0, im1, patch_size, maxdisp)
 disp_mat = sa.cost_to_disp(cost_maps)
 
 disp_mat = 255 * disp_mat / np.max(disp_mat)
