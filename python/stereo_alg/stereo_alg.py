@@ -246,16 +246,12 @@ def rgb_interpolation(img: Matrix, disp_mat: Matrix, check_mat: Matrix) -> Matri
 def sxd(mat1: Matrix, mat2: Matrix, s, x, d, maxdisp: int) -> CostMaps:
     rows = mat1.shape[0]
     cols = mat1.shape[1]
-    cost_maps = np.empty([0, rows, cols])
+    cost_maps = np.full([maxdisp, rows, cols], np.inf)
     cost_map = s(x(d(mat2, mat1)))
-    cost_maps = np.append(cost_maps, [cost_map], 0)
+    cost_maps[0] = cost_map
     for disp in range(1, maxdisp):
         cost_map = s(x(d(mat2[:, :-disp, ...], mat1[:, disp:, ...])))
-
-        inf_mat = np.full([rows, disp], np.inf)
-        cost_map = np.append(inf_mat, cost_map, 1)
-
-        cost_maps = np.append(cost_maps, [cost_map], 0)
+        cost_maps[disp, :, disp:] = cost_map
 
     return cost_maps
 
@@ -364,19 +360,15 @@ def ncc(mat1: Matrix, mat2: Matrix, patch_size: int, maxdisp: int) -> CostMaps:
     denominator2 = scipy.signal.convolve2d(np.square(mat2), kernel, mode='same')
 
     rows, cols = mat1.shape
-    cost_maps = np.empty([0, rows, cols])
+    cost_maps = np.full([maxdisp, rows, cols], np.inf)
     numerator = scipy.signal.convolve2d(mat2 * mat1, kernel, mode='same')
     denominator = np.sqrt(denominator2 * denominator1)
     cost_map = -(numerator / denominator)
-    cost_maps = np.append(cost_maps, [cost_map], 0)
+    cost_maps[0] = cost_map
     for d in range(1, maxdisp):
         numerator = scipy.signal.convolve2d(mat2[..., :-d] * mat1[..., d:], kernel, mode='same')
         denominator = np.sqrt(denominator2[..., :-d] * denominator1[..., d:])
         cost_map = -(numerator / denominator)
-
-        inf_mat = np.full([rows, d], np.inf)
-        cost_map = np.append(inf_mat, cost_map, 1)
-
-        cost_maps = np.append(cost_maps, [cost_map], 0)
+        cost_maps[d, :, d:] = cost_map
 
     return cost_maps
