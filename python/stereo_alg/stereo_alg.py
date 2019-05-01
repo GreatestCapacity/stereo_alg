@@ -243,6 +243,24 @@ def rgb_interpolation(img: Matrix, disp_mat: Matrix, check_mat: Matrix) -> Matri
     return disp_mat
 
 
+@jit
+def left_interpolation(disp_mat: Matrix, check_mat: Matrix) -> Matrix:
+    """
+    Disparity Interpolation using RGB distance
+    :param img: RGB image
+    :param disp_mat: disparity map
+    :param check_mat: returned by left_right_check
+    :return: disparity map interpolated
+    """
+    rows, cols = disp_mat.shape
+
+    for r in range(0, rows):
+        for c in range(1, cols):
+            if not check_mat[r, c]:
+                disp_mat[r, c] = disp_mat[r, c-1]
+    return disp_mat
+
+
 def sxd(mat1: Matrix, mat2: Matrix, s, x, d, maxdisp: int) -> CostMaps:
     rows = mat1.shape[0]
     cols = mat1.shape[1]
