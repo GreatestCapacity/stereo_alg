@@ -374,18 +374,20 @@ def ncc(mat1: Matrix, mat2: Matrix, patch_size: int, maxdisp: int) -> CostMaps:
     kernel = np.ones((patch_size, patch_size))
 
     denominator1 = scipy.signal.convolve2d(np.square(mat1), kernel, mode='same')
+    denominator1 = np.sqrt(denominator1)
 
     denominator2 = scipy.signal.convolve2d(np.square(mat2), kernel, mode='same')
+    denominator2 = np.sqrt(denominator2)
 
     rows, cols = mat1.shape
     cost_maps = np.full([maxdisp, rows, cols], np.inf)
     numerator = scipy.signal.convolve2d(mat2 * mat1, kernel, mode='same')
-    denominator = np.sqrt(denominator2 * denominator1)
+    denominator = denominator2 * denominator1
     cost_map = -(numerator / denominator)
     cost_maps[0] = cost_map
     for d in range(1, maxdisp):
         numerator = scipy.signal.convolve2d(mat2[..., :-d] * mat1[..., d:], kernel, mode='same')
-        denominator = np.sqrt(denominator2[..., :-d] * denominator1[..., d:])
+        denominator = denominator2[..., :-d] * denominator1[..., d:]
         cost_map = -(numerator / denominator)
         cost_maps[d, :, d:] = cost_map
 
