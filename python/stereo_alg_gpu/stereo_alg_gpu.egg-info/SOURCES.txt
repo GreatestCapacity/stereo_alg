@@ -1,9 +1,0 @@
-LICENSE
-MANIFEST.in
-README.txt
-setup.py
-stereo_alg_gpu.py
-stereo_alg_gpu.egg-info/PKG-INFO
-stereo_alg_gpu.egg-info/SOURCES.txt
-stereo_alg_gpu.egg-info/dependency_links.txt
-stereo_alg_gpu.egg-info/top_level.txt
