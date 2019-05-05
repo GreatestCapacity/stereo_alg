@@ -204,10 +204,26 @@ def left_right_check(left_disp_mat: Matrix, right_disp_mat: Matrix) -> Matrix:
             d = int(left_disp_mat[r, c])
             if c - d < 0:
                 continue
-            if right_disp_mat[r, c - d] == d:
+            if abs(d - right_disp_mat[r, c - d]) <= 1.0:
                 check_mat[r, c] = True
 
     return check_mat
+
+
+@jit
+def subpixel_enhance(disp_mat, cost_maps):
+    disp_mat_float = disp_mat.astype('float32')
+    maxdisp, rows, cols = cost_maps.shape
+    for r in range(rows):
+        for c in range(cols):
+            d = disp_mat[r, c]
+            if d - 1 < 0 or d + 1 >= min(maxdisp, c+1):
+                continue
+            cost = cost_maps[d, r, c]
+            cost_f = cost_maps[d+1, r, c]
+            cost_b = cost_maps[d-1, r, c]
+            disp_mat_float[r, c] = d - (cost_f - cost_b) / (2 * (cost_f - 2*cost + cost_b))
+    return disp_mat_float
 
 
 @jit
@@ -256,7 +272,7 @@ def left_interpolation(disp_mat: Matrix, check_mat: Matrix) -> Matrix:
 
     for r in range(0, rows):
         for c in range(1, cols):
-            if not check_mat[r, c]:
+            if not check_mat[r, c] and disp_mat[r, c-1]:
                 disp_mat[r, c] = disp_mat[r, c-1]
     return disp_mat
 
