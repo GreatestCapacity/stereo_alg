@@ -24,24 +24,11 @@ def sd(mat1, mat2, cost_map, d):
 
 @cuda.jit
 def xd(mat1, mat2, cost_map, d):
+    t = 12.5
     r, c = cuda.grid(2)
     if r < mat1.shape[0] and c + d < mat1.shape[1]:
-        cost_map[r, c+d] = 255 / (1 + math.exp(-(abs(mat2[r, c] - mat1[r, c+d])-13.2)/1.8))
+        cost_map[r, c+d] = 255 / (1 + math.exp(-(abs(mat2[r, c] - mat1[r, c+d])-t)/(0.14 * t)))
     cuda.syncthreads()
-
-
-def rectangular_aggregation(mat, result, rds, d):
-    @cuda.jit
-    def move_add(i, j):
-        r, c = cuda.grid(2)
-        rows,cols = mat.shape
-        if 0 <= r + i < rows and 0 <= c + j and c + j + d < cols:
-            result[r, c + d] = result[r, c + d] + mat[r + i, c + j + d]
-
-    for i in range(-rds, rds+1):
-        for j in range(-rds, rds+1):
-            move_add[(30, 30), (30, 30)](i, j)
-    return result
 
 
 @cuda.jit
@@ -86,7 +73,7 @@ def sad(mat1_gpu, mat2_gpu, patch_size, maxdisp):
 
     for d in range(maxdisp):
         ad[(30, 30), (30, 30)](mat1_gpu, mat2_gpu, cost_map_gpu, d)
-        cost_maps_gpu[d] = rectangular_aggregation(cost_map_gpu, cost_maps_gpu[d], 4, d)
+        sum[(30, 30), (30, 30)](cost_map_gpu, cost_maps_gpu[d], 4, d)
 
     return cost_maps_gpu
 

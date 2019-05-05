@@ -190,11 +190,12 @@ def cost_to_disp_with_penalty(mat: Matrix, cost_maps: CostMaps, T: float) -> Mat
 
 
 @jit
-def left_right_check(left_disp_mat: Matrix, right_disp_mat: Matrix) -> Matrix:
+def left_right_check(left_disp_mat: Matrix, right_disp_mat: Matrix, thresh: float = 1.0) -> Matrix:
     """
     Left-Right Consistency Check
     :param left_disp_mat: disparity map based on the left image
     :param right_disp_mat: disparity map based on the right image
+    :param thresh: the threshold to check if a pixel is correct matched
     :return: a boolean matrix that True strands for correct and False stands for incorrect
     """
     rows, cols = left_disp_mat.shape
@@ -204,14 +205,20 @@ def left_right_check(left_disp_mat: Matrix, right_disp_mat: Matrix) -> Matrix:
             d = int(left_disp_mat[r, c])
             if c - d < 0:
                 continue
-            if abs(d - right_disp_mat[r, c - d]) <= 1.0:
+            if abs(d - right_disp_mat[r, c - d]) <= thresh:
                 check_mat[r, c] = True
 
     return check_mat
 
 
 @jit
-def subpixel_enhance(disp_mat, cost_maps):
+def subpixel_enhance(disp_mat: Matrix, cost_maps: CostMaps) -> Matrix:
+    """
+    Subpixel Enhancement
+    :param disp_mat: disparity map
+    :param cost_maps: cost maps
+    :return: disparity map
+    """
     disp_mat_float = disp_mat.astype('float32')
     maxdisp, rows, cols = cost_maps.shape
     for r in range(rows):
