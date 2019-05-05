@@ -2,5 +2,6 @@
 *.so
 *.egg
 *.egg-info
+*.xml
 **/dist/
 **/build/
