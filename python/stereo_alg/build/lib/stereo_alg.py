@@ -190,11 +190,12 @@ def cost_to_disp_with_penalty(mat: Matrix, cost_maps: CostMaps, T: float) -> Mat
 
 
 @jit
-def left_right_check(left_disp_mat: Matrix, right_disp_mat: Matrix, thresh: float) -> Matrix:
+def left_right_check(left_disp_mat: Matrix, right_disp_mat: Matrix, thresh: float = 1.0) -> Matrix:
     """
     Left-Right Consistency Check
     :param left_disp_mat: disparity map based on the left image
     :param right_disp_mat: disparity map based on the right image
+    :param thresh: the threshold to check if a pixel is correct matched
     :return: a boolean matrix that True strands for correct and False stands for incorrect
     """
     rows, cols = left_disp_mat.shape
