@@ -38,12 +38,12 @@ def save_pfm(data: Matrix, file_name: str, scalefactor: float = 1/255.0) -> None
     :param scalefactor: scale factor
     :return: None
     """
-    height = data.shape[0]  # rows
-    width = data.shape[1]  # cols
+    rows = data.shape[0]
+    cols = data.shape[1]
     f = open(file_name, 'wb')
-    f.write(b'Pf\n%d %d\n%f\n' % (width, height, -scalefactor))
-    for i in range(height-1, -1, -1):
-        for j in range(width):
+    f.write(b'Pf\n%d %d\n%f\n' % (cols, rows, -scalefactor))
+    for i in range(rows-1, -1, -1):
+        for j in range(cols):
             f.write(struct.pack('f', data[i, j]))
     f.close()
 
@@ -129,8 +129,8 @@ def get_right_cost_maps(cost_maps: CostMaps) -> CostMaps:
     :return: right cost maps
     All the stereo matching functions return left cost maps.
     """
-    maxdisp, rows, cols = cost_maps.shape
-    for d in range(1, maxdisp):
+    ndisp, rows, cols = cost_maps.shape
+    for d in range(1, ndisp):
         inf_mat = np.full([rows, d], np.inf)
         cost_maps[d] = np.append(cost_maps[d, :, d:], inf_mat, 1)
     return cost_maps
@@ -158,7 +158,7 @@ def cost_to_disp_with_penalty(mat: Matrix, cost_maps: CostMaps, T: float) -> Mat
     IET Computer Vision, 2013, 7(2): 123–134.
     """
     def one_side_compute(_mat, _cost_maps, is_left):
-        maxdisp, rows, cols = _cost_maps.shape
+        ndisp, rows, cols = _cost_maps.shape
         disp_mat = np.zeros([rows, cols])
 
         if is_left:
@@ -171,7 +171,7 @@ def cost_to_disp_with_penalty(mat: Matrix, cost_maps: CostMaps, T: float) -> Mat
             disp_mat[:, cols-1] = d0
 
         for c in c_range:
-            for d in range(maxdisp):
+            for d in range(ndisp):
                 if is_left:
                     _c = c - 1
                 else:
@@ -220,11 +220,11 @@ def subpixel_enhance(disp_mat: Matrix, cost_maps: CostMaps) -> Matrix:
     :return: disparity map
     """
     disp_mat_float = disp_mat.astype('float32')
-    maxdisp, rows, cols = cost_maps.shape
+    ndisp, rows, cols = cost_maps.shape
     for r in range(rows):
         for c in range(cols):
             d = disp_mat[r, c]
-            if d - 1 < 0 or d + 1 >= min(maxdisp, c+1):
+            if d - 1 < 0 or d + 1 >= min(ndisp, c+1):
                 continue
             cost = cost_maps[d, r, c]
             cost_f = cost_maps[d+1, r, c]
@@ -321,10 +321,11 @@ def multi_window(disp_mat: Matrix, cost_maps: CostMaps, patch_size: int):
 def sxd(mat1: Matrix, mat2: Matrix, s, x, d, maxdisp: int) -> CostMaps:
     rows = mat1.shape[0]
     cols = mat1.shape[1]
-    cost_maps = np.full([maxdisp, rows, cols], np.inf)
+    ndisp = maxdisp + 1
+    cost_maps = np.full([ndisp, rows, cols], np.inf)
     cost_map = s(x(d(mat2, mat1)))
     cost_maps[0] = cost_map
-    for disp in range(1, maxdisp):
+    for disp in range(1, ndisp):
         cost_map = s(x(d(mat2[:, :-disp, ...], mat1[:, disp:, ...])))
         cost_maps[disp, :, disp:] = cost_map
 
@@ -437,12 +438,13 @@ def ncc(mat1: Matrix, mat2: Matrix, patch_size: int, maxdisp: int) -> CostMaps:
     denominator2 = np.sqrt(denominator2)
 
     rows, cols = mat1.shape
-    cost_maps = np.full([maxdisp, rows, cols], np.inf)
+    ndisp = maxdisp + 1
+    cost_maps = np.full([ndisp, rows, cols], np.inf)
     numerator = scipy.signal.convolve2d(mat2 * mat1, kernel, mode='same')
     denominator = denominator2 * denominator1
     cost_map = -(numerator / denominator)
     cost_maps[0] = cost_map
-    for d in range(1, maxdisp):
+    for d in range(1, ndisp):
         numerator = scipy.signal.convolve2d(mat2[..., :-d] * mat1[..., d:], kernel, mode='same')
         denominator = denominator2[..., :-d] * denominator1[..., d:]
         cost_map = -(numerator / denominator)
