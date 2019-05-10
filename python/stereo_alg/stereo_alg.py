@@ -284,6 +284,40 @@ def left_interpolation(disp_mat: Matrix, check_mat: Matrix) -> Matrix:
     return disp_mat
 
 
+def multi_window(disp_mat: Matrix, cost_maps: CostMaps, patch_size: int):
+    """
+    Nine Windows Approach proposed by Fusiello et al.
+    :param disp_mat: disparity map
+    :param cost_maps: cost maps
+    :param patch_size: an odd integer, the diameter of the square patch
+    :return: disparity map
+    For more information about this function, see the journal paper below
+    Fusiello A, Roberto V, Trucco E. Efficient Stereo with Multiple Windowing[C]
+    //Proceedings of IEEE Conference on Computer Vision and Pattern Recognition.
+    Puerto Rico, USA: 1997: 858–863.
+    """
+    rad = patch_size // 2
+    rows, cols = disp_mat.shape
+    for r in range(rows):
+        for c in range(cols):
+            disp = list()
+            cost = list()
+            for i in range(-rad, rad+1, rad):
+                if rows <= r + i or r + i < 0:
+                    continue
+                for j in range(-rad, rad+1, rad):
+                    if cols <= c + j or c + j < 0:
+                        continue
+
+                    d = disp_mat[r + i, c + j]
+                    wt_c = cost_maps[int(d), r, c]
+                    disp.append(d)
+                    cost.append(wt_c)
+
+            disp_mat[r, c] = disp[np.argmin(cost)]
+    return disp_mat
+
+
 def sxd(mat1: Matrix, mat2: Matrix, s, x, d, maxdisp: int) -> CostMaps:
     rows = mat1.shape[0]
     cols = mat1.shape[1]
