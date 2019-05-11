@@ -300,8 +300,8 @@ def multi_window(disp_mat: Matrix, cost_maps: CostMaps, patch_size: int):
     rows, cols = disp_mat.shape
     for r in range(rows):
         for c in range(cols):
-            disp = list()
-            cost = list()
+            min_cost = np.inf
+            min_disp = 0.0
             for i in range(-rad, rad+1, rad):
                 if rows <= r + i or r + i < 0:
                     continue
@@ -311,10 +311,11 @@ def multi_window(disp_mat: Matrix, cost_maps: CostMaps, patch_size: int):
 
                     d = disp_mat[r + i, c + j]
                     wt_c = cost_maps[int(d), r, c]
-                    disp.append(d)
-                    cost.append(wt_c)
+                    if wt_c < min_cost:
+                        min_cost = wt_c
+                        min_disp = d
 
-            disp_mat[r, c] = disp[np.argmin(cost)]
+            disp_mat[r, c] = min_disp
     return disp_mat
 
 
@@ -400,7 +401,7 @@ def zsad(mat1: Matrix, mat2: Matrix, patch_size: int, maxdisp: int) -> CostMaps:
 
 def ssd(mat1: Matrix, mat2: Matrix, patch_size: int, maxdisp: int) -> CostMaps:
     """
-    Sum of Absolute Differences
+    Sum of Squared Differences
     :param mat1: the left gray image
     :param mat2: the right gray image
     :param patch_size: an odd integer, the diameter of the square patch
@@ -414,6 +415,42 @@ def ssd(mat1: Matrix, mat2: Matrix, patch_size: int, maxdisp: int) -> CostMaps:
     s = functools.partial(scipy.signal.convolve2d, in2=kernel, mode='same')
     d = lambda a, b: a - b
     return sxd(mat1, mat2, s, np.square, d, maxdisp)
+
+
+def nssd(mat1: Matrix, mat2: Matrix, patch_size: int, maxdisp: int) -> CostMaps:
+    """
+    Normalized Sum of Squared Differences
+    :param mat1: the left gray image
+    :param mat2: the right gray image
+    :param patch_size: an odd integer, the diameter of the square patch
+    :param maxdisp: the max disparity
+    :return: cost maps
+    """
+    mat1 = mat1.astype('float32')
+    mat2 = mat2.astype('float32')
+
+    kernel = np.ones((patch_size, patch_size))
+
+    denominator1 = scipy.signal.convolve2d(np.square(mat1), kernel, mode='same')
+    denominator1 = np.sqrt(denominator1)
+
+    denominator2 = scipy.signal.convolve2d(np.square(mat2), kernel, mode='same')
+    denominator2 = np.sqrt(denominator2)
+
+    rows, cols = mat1.shape
+    ndisp = maxdisp + 1
+    cost_maps = np.full([ndisp, rows, cols], np.inf)
+    numerator = scipy.signal.convolve2d(np.square(mat2 - mat1), kernel, mode='same')
+    denominator = denominator2 * denominator1
+    cost_map = numerator / denominator
+    cost_maps[0] = cost_map
+    for d in range(1, ndisp):
+        numerator = scipy.signal.convolve2d(np.square(mat2[:, :-d] - mat1[:, d:]), kernel, mode='same')
+        denominator = denominator2[:, :-d] * denominator1[:, d:]
+        cost_map = numerator / denominator
+        cost_maps[d, :, d:] = cost_map
+
+    return cost_maps
 
 
 @jit
@@ -445,8 +482,8 @@ def ncc(mat1: Matrix, mat2: Matrix, patch_size: int, maxdisp: int) -> CostMaps:
     cost_map = -(numerator / denominator)
     cost_maps[0] = cost_map
     for d in range(1, ndisp):
-        numerator = scipy.signal.convolve2d(mat2[..., :-d] * mat1[..., d:], kernel, mode='same')
-        denominator = denominator2[..., :-d] * denominator1[..., d:]
+        numerator = scipy.signal.convolve2d(mat2[:, :-d] * mat1[:, d:], kernel, mode='same')
+        denominator = denominator2[:, :-d] * denominator1[:, d:]
         cost_map = -(numerator / denominator)
         cost_maps[d, :, d:] = cost_map
 

@@ -2,31 +2,13 @@ import math
 import cv2 as cv
 import numpy as np
 from numba import cuda
+from basic_alg import dist_l1, dist_l2
 
 __gamma_c = 5.0
 __gamma_p = 17.5
 __T = 40.0
 __width = 35.0
 __height = 35.0
-
-
-@cuda.jit('float32(float32[:], float32[:])', device=True)
-def dist_l1(v1, v2):
-    dim = v1.shape[0]
-    _sum = 0.0
-    for i in range(dim):
-        _sum += abs(v1[i] - v2[i])
-    return _sum
-
-
-@cuda.jit('float32(float32[:], float32[:])', device=True)
-def dist_l2(v1, v2):
-    dim = v1.shape[0]
-    _sum = 0.0
-    for i in range(dim):
-        x = v1[i] - v2[i]
-        _sum += x * x
-    return math.sqrt(_sum)
 
 
 @cuda.jit('float32(float32[:], float32[:])', device=True)
@@ -98,6 +80,10 @@ def matching_cost(img1_lab, img2_lab, img1_bgr, img2_bgr, cost_maps, maxdisp):
 
 
 def adapt_weight(img1, img2, maxdisp, gamma_c=5.0, gamma_p=17.5, T=40.0, width=35.0, height=35.0):
+    """
+    Yoon K-J, Kweon I S. Adaptive support-weight approach for correspondence search[J].
+    IEEE Transactions on Pattern Analysis and Machine Intelligence, 2006, 28(4): 650–656.
+    """
     global __gamma_c
     global __gamma_p
     global __T
@@ -123,6 +109,6 @@ def adapt_weight(img1, img2, maxdisp, gamma_c=5.0, gamma_p=17.5, T=40.0, width=3
     cost_maps = np.full([maxdisp, rows, cols], np.inf)
     cost_maps_gpu = cuda.to_device(cost_maps)
 
-    matching_cost[(30, 30), (15, 15)](img1_lab_gpu, img2_lab_gpu, img1_bgr_gpu, img2_bgr_gpu, cost_maps_gpu, maxdisp)
+    matching_cost[(60, 60), (17, 17)](img1_lab_gpu, img2_lab_gpu, img1_bgr_gpu, img2_bgr_gpu, cost_maps_gpu, maxdisp)
 
     return cost_maps_gpu
