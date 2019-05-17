@@ -1,0 +1,14 @@
+#!/usr/bin/python3
+
+import sys
+from process import process
+
+if len(sys.argv) < 5:
+    print("usage: %s im0.png im1.png disp.pfm maxdisp" % argv[0])
+
+file1 = sys.argv[1]
+file2 = sys.argv[2]
+outfile = sys.argv[3]
+maxdisp = int(sys.argv[4])
+
+process(file1, file2, outfile, maxdisp)

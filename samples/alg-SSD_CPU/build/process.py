@@ -1,11 +1,10 @@
 import cv2 as cv
-import numpy as np
 import stereo_alg as sa
 import time
-from alg_sad import alg_sad
+from alg_ssd_cpu import alg_ssd_cpu
 
 
-def process(file1_name, file2_name, outfile_name, maxdisp, no_interp=False):
+def process(file1_name, file2_name, outfile_name, maxdisp):
     # Record the time when the algorithmn start
     start_time = time.clock()
 
@@ -13,8 +12,7 @@ def process(file1_name, file2_name, outfile_name, maxdisp, no_interp=False):
     img1 = cv.imread(file1_name, cv.IMREAD_COLOR)
     img2 = cv.imread(file2_name, cv.IMREAD_COLOR)
 
-    patch_size = 9
-    disp_mat = alg_sad(img1, img2, patch_size, maxdisp)
+    disp_mat = alg_ssd_cpu(img1, img2, maxdisp)
 
     # Output runtime
     end_time = time.clock()
@@ -25,5 +23,3 @@ def process(file1_name, file2_name, outfile_name, maxdisp, no_interp=False):
 
     # Save disparity image to pfm file
     sa.save_pfm(disp_mat, outfile_name, 1.0/maxdisp)
-
-
