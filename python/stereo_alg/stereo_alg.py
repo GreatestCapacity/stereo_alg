@@ -131,8 +131,8 @@ def get_right_cost_maps(cost_maps: CostMaps) -> CostMaps:
     """
     ndisp, rows, cols = cost_maps.shape
     for d in range(1, ndisp):
-        inf_mat = np.full([rows, d], np.inf)
-        cost_maps[d] = np.append(cost_maps[d, :, d:], inf_mat, 1)
+        cost_maps[d, :, :-d] = cost_maps[d, :, d:]
+        cost_maps[d, :, -d:] = np.inf
     return cost_maps
 
 
@@ -157,19 +157,20 @@ def cost_to_disp_with_penalty(mat: Matrix, cost_maps: CostMaps, T: float) -> Mat
     Gupta R K, Cho S-Y. Window-based approach for fast stereo correspondence[J].
     IET Computer Vision, 2013, 7(2): 123–134.
     """
-    def one_side_compute(_mat, _cost_maps, is_left):
-        ndisp, rows, cols = _cost_maps.shape
+    def one_side_compute(_mat, is_left):
+        ndisp, rows, cols = cost_maps.shape
         disp_mat = np.zeros([rows, cols])
 
         if is_left:
             c_range = range(1, cols)
-            d0 = np.argmin(_cost_maps[:, :, 0], 0)
+            d0 = np.argmin(cost_maps[:, :, 0], 0)
             disp_mat[:, 0] = d0
         else:
             c_range = range(cols-2, -1, -1)
-            d0 = np.argmin(_cost_maps[:, :, cols - 1], 0)
+            d0 = np.argmin(cost_maps[:, :, cols - 1], 0)
             disp_mat[:, cols-1] = d0
 
+        col_cost = np.zeros([ndisp, rows])
         for c in c_range:
             for d in range(ndisp):
                 if is_left:
@@ -177,15 +178,15 @@ def cost_to_disp_with_penalty(mat: Matrix, cost_maps: CostMaps, T: float) -> Mat
                 else:
                     _c = c + 1
                 penalty = T * np.absolute(d - d0) * (1 - np.absolute(_mat[:, c] - _mat[:, _c]) / 255)
-                _cost_maps[d, :, c] = _cost_maps[d, :, c] + penalty
+                col_cost[d] = cost_maps[d, :, c] + penalty
 
-            d0 = np.argmin(_cost_maps[:, :, c], 0)
+            d0 = np.argmin(col_cost, 0)
             disp_mat[:, c] = d0
 
         return disp_mat
 
-    d_cl = one_side_compute(mat, cost_maps, True)
-    d_cr = one_side_compute(mat, cost_maps, False)
+    d_cl = one_side_compute(mat, True)
+    d_cr = one_side_compute(mat, False)
     return np.min(np.array([d_cl, d_cr]), 0)
 
 
@@ -236,7 +237,7 @@ def subpixel_enhance(disp_mat: Matrix, cost_maps: CostMaps) -> Matrix:
 @jit
 def rgb_interpolation(img: Matrix, disp_mat: Matrix, check_mat: Matrix) -> Matrix:
     """
-    Disparity Interpolation using RGB distance
+    Disparity Interpolation Using RGB distance
     :param img: RGB image
     :param disp_mat: disparity map
     :param check_mat: returned by left_right_check
@@ -251,10 +252,10 @@ def rgb_interpolation(img: Matrix, disp_mat: Matrix, check_mat: Matrix) -> Matri
 
             min_dist = np.inf
             d = 0.0
-            for i in range(-2, 3):
+            for i in range(-1, 2):
                 if r + i < 0 or r + i >= rows:
                     continue
-                for j in range(-2, 3):
+                for j in range(-1, 2):
                     if c + j < 0 or c + j >= cols or not check_mat[r+i, c+j]:
                         continue
 
@@ -269,8 +270,7 @@ def rgb_interpolation(img: Matrix, disp_mat: Matrix, check_mat: Matrix) -> Matri
 @jit
 def left_interpolation(disp_mat: Matrix, check_mat: Matrix) -> Matrix:
     """
-    Disparity Interpolation using RGB distance
-    :param img: RGB image
+    Disparity Interpolation Using Left Reliable Pixel
     :param disp_mat: disparity map
     :param check_mat: returned by left_right_check
     :return: disparity map interpolated
@@ -279,43 +279,8 @@ def left_interpolation(disp_mat: Matrix, check_mat: Matrix) -> Matrix:
 
     for r in range(0, rows):
         for c in range(1, cols):
-            if not check_mat[r, c] and disp_mat[r, c-1]:
+            if not check_mat[r, c] and check_mat[r, c-1]:
                 disp_mat[r, c] = disp_mat[r, c-1]
-    return disp_mat
-
-
-def multi_window(disp_mat: Matrix, cost_maps: CostMaps, patch_size: int):
-    """
-    Nine Windows Approach proposed by Fusiello et al.
-    :param disp_mat: disparity map
-    :param cost_maps: cost maps
-    :param patch_size: an odd integer, the diameter of the square patch
-    :return: disparity map
-    For more information about this function, see the journal paper below
-    Fusiello A, Roberto V, Trucco E. Efficient Stereo with Multiple Windowing[C]
-    //Proceedings of IEEE Conference on Computer Vision and Pattern Recognition.
-    Puerto Rico, USA: 1997: 858–863.
-    """
-    rad = patch_size // 2
-    rows, cols = disp_mat.shape
-    for r in range(rows):
-        for c in range(cols):
-            min_cost = np.inf
-            min_disp = 0.0
-            for i in range(-rad, rad+1, rad):
-                if rows <= r + i or r + i < 0:
-                    continue
-                for j in range(-rad, rad+1, rad):
-                    if cols <= c + j or c + j < 0:
-                        continue
-
-                    d = disp_mat[r + i, c + j]
-                    wt_c = cost_maps[int(d), r, c]
-                    if wt_c < min_cost:
-                        min_cost = wt_c
-                        min_disp = d
-
-            disp_mat[r, c] = min_disp
     return disp_mat
 
 
